@@ -37,7 +37,8 @@ views:
 ```
 ## TODO
 
-*User Exceptions 
-*Per View settings (don't timeout, duration, default to different view or panel)
+-User Exceptions 
+
+-Per View settings (don't timeout, duration, default to different view or panel)
 
 
