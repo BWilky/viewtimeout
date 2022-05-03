@@ -5,7 +5,7 @@
 Returns to specified default view after activity timeout [Home Assistant](https://www.home-assistant.io/)
 
 
-
+![image](img1.gif)
 
 ## Important Info
 
