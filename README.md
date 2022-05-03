@@ -9,8 +9,8 @@ Returns to specified default view after activity timeout [Home Assistant](https:
 
 ## Important Info
 
-* If you need to disable the timeout feature temporarily add `?disable_timeout` to the end of your URL.
-* Config is placed in the root of your Lovelace config: `view_timeout:`
+* If you need to disable the timeout feature temporarily, add `?disable_timeout` to the end of your URL.
+* Config is placed in the root of your dashboard/panel code: `view_timeout:`
 
 
   
