@@ -1,7 +1,6 @@
 {
-  "name": "View Timeout",
+  "name": "ViewTimeout",
   "render_readme": true,
   "filename": "timeout.js",
   "content_in_root": true
- 
 }
