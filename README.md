@@ -13,11 +13,6 @@ Returns to specified default view after activity timeout [Home Assistant](https:
 * Config is placed in the root of your Lovelace config: `view_timeout:`
 
 
-view_timeout:
-  timeout: true
-  default: home
-  duration: 15000
-  
   
 ## Config Options
 
@@ -37,5 +32,12 @@ view_timeout:
   duration: 15000
   
 views:
+
+## TODO
+
+*User Exceptions 
+*Per View settings (don't timeout, duration, default to different view or panel)
+
+
 
 ```
