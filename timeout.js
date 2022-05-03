@@ -3,14 +3,15 @@ class ViewTimeout {
 
     this.ha = document.querySelector("home-assistant");
     this.main = this.ha.shadowRoot.querySelector("home-assistant-main").shadowRoot;
-
+    
     this.llAttempts = 0;
-
+    
     this.viewTimeout;
     this.urlInterval;
     this.timeoutTime;
     this.homeView;
-
+    this.defaultPanelUrl;
+  
     this.run();
 
   }
@@ -21,6 +22,7 @@ class ViewTimeout {
   }
 
   getConfig(lovelace) {
+
     this.llAttempts++;
 
     try {
@@ -39,35 +41,37 @@ class ViewTimeout {
   }
 
   processConfig(lovelace, config) {
-    if (!config.timeout) return;
-
+    if(!config.timeout) return;
+    
     this.homeView = config.default || "home";
+    this.defaultPanelUrl = this.ha.hass.panelUrl;
+    
     this.timeoutTime = config.duration || 30000;
-
+    this.dashboard
     setTimeout(() => this.urlCheckerStart(), 50);
   }
-
+  
   // Convert to array.
   array(x) {
     return Array.isArray(x) ? x : [x];
-  }
-
+  }  
+  
   queryString(keywords) {
     return this.array(keywords).some((x) => window.location.search.includes(x));
   }
 
 
   clickEvent() {
-    clearTimeout(this.ViewTimeout.viewTimeout);
-    this.ViewTimeout.viewTimeout = setTimeout(() => this.ViewTimeout.timeoutReturn(), this.ViewTimeout.timeoutTime);
+      clearTimeout(this.ViewTimeout.viewTimeout);
+      this.ViewTimeout.viewTimeout = setTimeout(() => this.ViewTimeout.timeoutReturn(), this.ViewTimeout.timeoutTime);
   }
 
   setViewTimeout() {
-    window.addEventListener("click", this.clickEvent);
-    this.viewTimeout = setTimeout(() => this.timeoutReturn(), this.timeoutTime);
+   window.addEventListener("click", this.clickEvent );
+   this.viewTimeout = setTimeout(() => this.timeoutReturn(), this.timeoutTime);
   }
   cancelEverything() {
-    window.removeEventListener("click", this.clickEvent);
+    window.removeEventListener("click", this.clickEvent );
     clearTimeout(this.viewTimeout);
     //null the timeout
     this.viewTimeout = false;
@@ -75,30 +79,30 @@ class ViewTimeout {
 
   timeoutReturn() {
     this.cancelEverything();
-
-    window.history.pushState("", "", '/tablet-large/' + this.homeView);
+  
+    window.history.pushState("", "", '/'+this.defaultPanelUrl+'/'+this.homeView);
     window.cardTools.fireEvent("location-changed", {}, document.querySelector("home-assistant"));
   }
-
+  
   urlCheckerStart() {
-    this.urlInterval = setInterval(() => this.urlChecker(), 1000);
+   this.urlInterval = setInterval(() => this.urlChecker(), 1000);
   }
-
+  
   urlGetView() {
     const currentView = window.location.href.split("/").pop().split('?')[0];
-
+    
     return currentView;
   }
-
-
-
+  
+  
+  
   urlChecker() {
-    if (this.homeView != this.urlGetView() && !this.viewTimeout) {
+    if(this.homeView != this.urlGetView() && !this.viewTimeout) {
       this.setViewTimeout();
 
-    }
-
-    if (this.homeView == this.urlGetView() && this.viewTimeout) {
+     }
+  
+    if(this.homeView == this.urlGetView() && this.viewTimeout) {
       this.cancelEverything();
     }
   }
