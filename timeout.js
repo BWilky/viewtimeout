@@ -82,6 +82,7 @@ class ViewTimeout {
   
     window.history.pushState("", "", '/'+this.defaultPanelUrl+'/'+this.homeView);
     window.cardTools.fireEvent("location-changed", {}, document.querySelector("home-assistant"));
+    document.querySelector("home-assistant").focus(); //reset the focus
   }
   
   urlCheckerStart() {
