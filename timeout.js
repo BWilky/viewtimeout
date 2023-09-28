@@ -79,10 +79,14 @@ class ViewTimeout {
 
   timeoutReturn() {
     this.cancelEverything();
-  
+
+    //Remove the selected class and remove focus from the former active tab to clear the style
+    document.querySelector('home-assistant').shadowRoot.querySelector('home-assistant-main').shadowRoot.querySelector('ha-drawer > partial-panel-resolver > ha-panel-lovelace').shadowRoot.querySelector('hui-root').shadowRoot.querySelector('ha-tabs > .iron-selected').classList.remove('iron-selected');
+    document.querySelector("home-assistant").focus();
+
+    //switch tabs
     window.history.pushState("", "", '/'+this.defaultPanelUrl+'/'+this.homeView);
     window.cardTools.fireEvent("location-changed", {}, document.querySelector("home-assistant"));
-    document.querySelector("home-assistant").focus(); //reset the focus
   }
   
   urlCheckerStart() {
