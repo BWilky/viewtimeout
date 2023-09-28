@@ -81,7 +81,7 @@ class ViewTimeout {
     this.cancelEverything();
 
     //Remove the selected class and remove focus from the former active tab to clear the style
-    var navbar = this.main.shadowRoot.querySelector('ha-drawer > partial-panel-resolver > ha-panel-lovelace').shadowRoot.querySelector('hui-root').shadowRoot;
+    var navbar = this.main.querySelector('ha-drawer > partial-panel-resolver > ha-panel-lovelace').shadowRoot.querySelector('hui-root').shadowRoot;
     var tabs = navbar.querySelectorAll('ha-tabs');
     tabs.forEach((ele) => {
     	ele.classList.remove('iron-selected');
