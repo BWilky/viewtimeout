@@ -81,7 +81,12 @@ class ViewTimeout {
     this.cancelEverything();
 
     //Remove focus from the former active tab to clear the style
-    this.main.querySelector('ha-drawer > partial-panel-resolver > ha-panel-lovelace').shadowRoot.querySelector('hui-root').shadowRoot.activeElement.blur();
+    try {
+      var activeTab = this.main.querySelector('ha-drawer > partial-panel-resolver > ha-panel-lovelace').shadowRoot.querySelector('hui-root').shadowRoot.activeElement;
+      if (activeTab != null) activeTab.blur();
+    } catch (e) {
+      console.log("Failed to blur active tab: " + e);
+    }
 
     //switch tabs
     window.history.pushState("", "", '/'+this.defaultPanelUrl+'/'+this.homeView);
