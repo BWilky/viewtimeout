@@ -80,13 +80,9 @@ class ViewTimeout {
   timeoutReturn() {
     this.cancelEverything();
 
-    //Remove the selected class and remove focus from the former active tab to clear the style
-    var navbar = this.main.querySelector('ha-drawer > partial-panel-resolver > ha-panel-lovelace').shadowRoot.querySelector('hui-root').shadowRoot;
-    var tabs = navbar.querySelectorAll('ha-tabs');
-    tabs.forEach((ele) => {
-    	ele.classList.remove('iron-selected');
-    });
-    document.querySelector("home-assistant").focus();
+    //Remove focus from the former active tab to clear the style (by focussing the navbar parent element)
+    var navbar = this.main.querySelector('ha-drawer > partial-panel-resolver > ha-panel-lovelace').shadowRoot.querySelector('hui-root').shadowRoot.querySelector('ha-tabs');
+    navbar.focus();
 
     //switch tabs
     window.history.pushState("", "", '/'+this.defaultPanelUrl+'/'+this.homeView);
