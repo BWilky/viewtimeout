@@ -81,7 +81,7 @@ class ViewTimeout {
     this.cancelEverything();
 
     //Remove focus from the former active tab to clear the style
-    var navbar = this.main.querySelector('ha-drawer > partial-panel-resolver > ha-panel-lovelace').shadowRoot.querySelector('hui-root').shadowRoot.activeElement.blur();
+    this.main.querySelector('ha-drawer > partial-panel-resolver > ha-panel-lovelace').shadowRoot.querySelector('hui-root').shadowRoot.activeElement.blur();
 
     //switch tabs
     window.history.pushState("", "", '/'+this.defaultPanelUrl+'/'+this.homeView);
