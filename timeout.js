@@ -79,7 +79,16 @@ class ViewTimeout {
 
   timeoutReturn() {
     this.cancelEverything();
-  
+
+    //Remove focus from the former active tab to clear the style
+    try {
+      var activeTab = this.main.querySelector('ha-drawer > partial-panel-resolver > ha-panel-lovelace').shadowRoot.querySelector('hui-root').shadowRoot.activeElement;
+      if (activeTab != null) activeTab.blur();
+    } catch (e) {
+      console.log("Failed to blur active tab: " + e);
+    }
+
+    //switch tabs
     window.history.pushState("", "", '/'+this.defaultPanelUrl+'/'+this.homeView);
     window.cardTools.fireEvent("location-changed", {}, document.querySelector("home-assistant"));
   }
