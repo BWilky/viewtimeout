@@ -55,7 +55,7 @@ class ViewTimeout {
 
   processConfig(lovelace, config) {
     if(!config.timeout) return;
-    if (this.user.list.indexOf(this.user.logged) < 0) return;
+    if (this.user.list.length && this.user.list.indexOf(this.user.logged) < 0) return;
 
     this.homeView = config.default || "home";
     this.defaultPanelUrl = this.ha.hass.panelUrl;
