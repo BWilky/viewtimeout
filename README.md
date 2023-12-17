@@ -11,8 +11,6 @@ Returns to specified default view after activity timeout [Home Assistant](https:
 
 * If you need to disable the timeout feature temporarily, add `?disable_timeout` to the end of your URL.
 * Config is placed in the root of your dashboard/panel code: `view_timeout:`
-
-
   
 ## Config Options
 
@@ -21,6 +19,7 @@ Returns to specified default view after activity timeout [Home Assistant](https:
 |`timeout:`| Boolean | true | enables/disables the timeout feature.
 |`default:` | String | home | view to default back to after timeout.
 |`duration:` | Number | 15000 | timeout in milliseconds
+|`users:` | Array |  | enable only for certain users (otherwise leave blank)
 
 
 ## Simple config example
@@ -30,15 +29,13 @@ view_timeout:
   timeout: true
   default: home
   duration: 15000
+  users:
+    - My Username
   
 views:
-
-
 ```
+
+
 ## TODO
 
--User Exceptions 
-
 -Per View settings (don't timeout, duration, default to different view or panel)
-
-
