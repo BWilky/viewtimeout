@@ -1,19 +1,18 @@
 class ViewTimeout {
   constructor() {
-
     this.ha = document.querySelector("home-assistant");
     this.main = this.ha.shadowRoot.querySelector("home-assistant-main").shadowRoot;
-    
+
     this.llAttempts = 0;
-    
+
+    this.user;
     this.viewTimeout;
     this.urlInterval;
     this.timeoutTime;
     this.homeView;
     this.defaultPanelUrl;
-  
-    this.run();
 
+    this.run();
   }
 
   run(lovelace = this.main.querySelector("ha-panel-lovelace")) {
@@ -22,12 +21,12 @@ class ViewTimeout {
   }
 
   getConfig(lovelace) {
-
     this.llAttempts++;
 
     try {
       const llConfig = lovelace.lovelace.config;
       const config = llConfig.view_timeout || {};
+      this.processUsers(lovelace, config);
       this.processConfig(lovelace, config);
     } catch (e) {
       if (this.llAttempts < 200) {
@@ -40,36 +39,50 @@ class ViewTimeout {
     }
   }
 
+  processUsers(lovelace, config) {
+    try {
+      this.user = {
+        logged: this.ha.hass.user?.name.toLowerCase() || '',
+        list: []
+      };
+      const users = config.users || [];
+      users.forEach(user => this.user.list.push(user.toLowerCase()));
+    } catch (e) {
+      console.log("User data not found, continuing ignoring users.");
+      console.log(e);
+    }
+  }
+
   processConfig(lovelace, config) {
     if(!config.timeout) return;
-    
+    if (this.user.list.indexOf(this.user.logged) < 0) return;
+
     this.homeView = config.default || "home";
     this.defaultPanelUrl = this.ha.hass.panelUrl;
-    
+
     this.timeoutTime = config.duration || 30000;
-    this.dashboard
     setTimeout(() => this.urlCheckerStart(), 50);
   }
-  
+
   // Convert to array.
   array(x) {
     return Array.isArray(x) ? x : [x];
   }  
-  
+
   queryString(keywords) {
     return this.array(keywords).some((x) => window.location.search.includes(x));
   }
 
-
   clickEvent() {
-      clearTimeout(this.ViewTimeout.viewTimeout);
-      this.ViewTimeout.viewTimeout = setTimeout(() => this.ViewTimeout.timeoutReturn(), this.ViewTimeout.timeoutTime);
+    clearTimeout(this.ViewTimeout.viewTimeout);
+    this.ViewTimeout.viewTimeout = setTimeout(() => this.ViewTimeout.timeoutReturn(), this.ViewTimeout.timeoutTime);
   }
 
   setViewTimeout() {
    window.addEventListener("click", this.clickEvent );
    this.viewTimeout = setTimeout(() => this.timeoutReturn(), this.timeoutTime);
   }
+
   cancelEverything() {
     window.removeEventListener("click", this.clickEvent );
     clearTimeout(this.viewTimeout);
@@ -92,25 +105,20 @@ class ViewTimeout {
     window.history.pushState("", "", '/'+this.defaultPanelUrl+'/'+this.homeView);
     window.cardTools.fireEvent("location-changed", {}, document.querySelector("home-assistant"));
   }
-  
+
   urlCheckerStart() {
    this.urlInterval = setInterval(() => this.urlChecker(), 1000);
   }
-  
+
   urlGetView() {
-    const currentView = window.location.href.split("/").pop().split('?')[0];
-    
-    return currentView;
+    return window.location.href.split("/").pop().split('?')[0];
   }
-  
-  
-  
+
   urlChecker() {
     if(this.homeView != this.urlGetView() && !this.viewTimeout) {
       this.setViewTimeout();
-
      }
-  
+
     if(this.homeView == this.urlGetView() && this.viewTimeout) {
       this.cancelEverything();
     }
