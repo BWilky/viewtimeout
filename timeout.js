@@ -140,12 +140,14 @@ class ViewTimeout {
   urlChecker() {
     const in_lovelace = !this.reset.in_lovelace || this.isDefaultPanel();
 
-    if (in_lovelace && this.homeView != this.urlGetView() && !this.viewTimeout) {
-      this.setViewTimeout();
-     }
-
-    if (!in_lovelace || (this.homeView == this.urlGetView() && this.viewTimeout)) {
-      this.cancelEverything();
+    if (in_lovelace && this.homeView != this.urlGetView()) {
+      if (!this.viewTimeout) {
+        this.setViewTimeout();
+      }
+    } else {
+      if (this.viewTimeout) {
+        this.cancelEverything();
+      }
     }
   }
 }
