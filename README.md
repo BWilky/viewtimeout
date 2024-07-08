@@ -13,6 +13,10 @@ timeout [Home Assistant](https://www.home-assistant.io/)
   URL.
 * Config is placed in the root of your dashboard/panel code: `view_timeout:`
 
+## Dependencies
+
+In order for redirection to work, it's necessary to first install [card-tools version 2](https://github.com/thomasloven/lovelace-card-tools).
+
 ## Config Options
 
 | Config Option | Type | Default | Description |
