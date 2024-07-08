@@ -153,7 +153,8 @@ class ViewTimeout {
     }
 
     // switch tabs
-    const target = this.getTarget(this.urlGetView()) || "home";
+    const defaultView = this.homeView || "home";
+    const target = this.getTarget(this.urlGetView()) || defaultView;
     window.history.pushState("", "", "/" + this.defaultPanelUrl + "/" + target);
     window.cardTools.fireEvent("location-changed", {}, document.querySelector("home-assistant"));
   }
