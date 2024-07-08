@@ -93,7 +93,7 @@ class ViewTimeout {
       return;
     }
 
-    this.homeView = config.default;
+    this.homeView = (config.default === undefined)  ? "home" : config.default;
     this.defaultPanelUrl = this.ha.hass.panelUrl;
 
     this.timeoutTime = config.duration || 30000;
@@ -153,9 +153,12 @@ class ViewTimeout {
     }
 
     // switch tabs
-    const target = this.getTarget(this.urlGetView()) || "home";
-    window.history.pushState("", "", "/" + this.defaultPanelUrl + "/" + target);
-    window.cardTools.fireEvent("location-changed", {}, document.querySelector("home-assistant"));
+    const defaultView = this.homeView;
+    const target = this.getTarget(this.urlGetView()) || defaultView;
+    if (target) {
+      window.history.pushState("", "", "/" + this.defaultPanelUrl + "/" + target);
+      window.cardTools.fireEvent("location-changed", {}, document.querySelector("home-assistant"));
+    }
   }
 
   urlCheckerStart() {
