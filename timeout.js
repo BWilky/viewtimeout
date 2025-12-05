@@ -1,200 +1,219 @@
 class ViewTimeout {
   constructor() {
-    this.ha = document.querySelector("home-assistant");
-    this.main = this.ha.shadowRoot.querySelector("home-assistant-main").shadowRoot;
+    this.timer = null;
+    this.checkInterval = null;
+    this.boundReset = this.resetTimer.bind(this);
 
-    this.llAttempts = 0;
-
-    this.user;
-    this.views;
-    this.pause;
-    this.reset;
-    this.homeView;
-    this.timeoutTime;
-    this.urlInterval;
-    this.viewTimeout;
-    this.defaultPanelUrl;
-
-    this.run();
+    // State
+    this.activePanelUrl = null; // The dashboard we are currently "serving"
+    this.currentUser = null;
+    this.homeView = "home";
+    this.timeoutDuration = 15000;
+    this.viewSpecificRedirects = {};
+    this.isEnabled = false;
+    
+    // Reset triggers
+    this.resetOnMove = false;
+    this.resetOnClick = true;
+    
+    // Start the global watcher
+    this.init();
   }
 
-  run(lovelace = this.main.querySelector("ha-panel-lovelace")) {
-    if (this.queryString("disable_timeout") || !lovelace) {
-      return;
+  get ha() {
+    return document.querySelector("home-assistant");
+  }
+
+  get main() {
+    return this.ha?.shadowRoot?.querySelector("home-assistant-main")?.shadowRoot;
+  }
+
+  get lovelace() {
+    // This dynamically grabs the CURRENT lovelace panel
+    return this.main?.querySelector("ha-panel-lovelace");
+  }
+
+  log(msg, error = false) {
+    const style = "color: orange; font-weight: bold; background: black; padding: 2px;";
+    if (error) {
+      console.error(`%c VIEWTIMEOUT %c ERROR: ${msg}`, style, "color: red;");
+    } else {
+      console.info(`%c VIEWTIMEOUT %c ${msg}`, style, "color: gray;");
     }
-    this.getConfig(lovelace);
-
-    console.info("%c VIEWTIMEOUT %c v1.1.0 ", "color: orange; font-weight: bold; background: black", "color: white; font-weight: bold; background: dimgray");
   }
 
-  // initialise tous les éléments
-  getConfig(lovelace) {
-    this.llAttempts++;
+  init() {
+    // We check every second. This interval runs forever, across all dashboards.
+    this.checkInterval = setInterval(() => this.masterLoop(), 1000);
+    this.log("Service started. Waiting for config...");
+  }
 
-    try {
-      const llConfig = lovelace.lovelace.config;
-      const config = llConfig.view_timeout || {};
+  // This loop runs every second to check:
+  // 1. Did we change dashboards?
+  // 2. If yes, load new config.
+  // 3. If no, run the timeout logic.
+  masterLoop() {
+    if (new URLSearchParams(window.location.search).has("disable_timeout")) return;
 
-      this.processUsers(lovelace, config);
-      this.processReset(lovelace, config);
-      this.processViews(lovelace, config);
-      this.processConfig(lovelace, config);
-    } catch (e) {
-      if (this.llAttempts < 200) {
-        setTimeout(() => this.getConfig(lovelace), 50);
-      } else {
-        console.log("Lovelace config not found, continuing with default configuration.");
-        console.log(e);
-        this.processConfig(lovelace, {});
+    const currentPanelUrl = this.ha?.hass?.panelUrl;
+
+    // SCENARIO 1: Dashboard Change Detected
+    if (currentPanelUrl !== this.activePanelUrl) {
+      this.handleDashboardChange(currentPanelUrl);
+      return; 
+    }
+
+    // SCENARIO 2: We are on the active dashboard, and it is enabled.
+    if (this.isEnabled) {
+      this.checkTimeoutLogic();
+    }
+  }
+
+  handleDashboardChange(newPanelUrl) {
+    // 1. Stop any running timers from the previous dashboard
+    this.stopTimer();
+    
+    // 2. Try to find config for this new dashboard
+    // It might take a moment for the new ha-panel-lovelace to load its config
+    const llConfig = this.lovelace?.lovelace?.config;
+
+    if (llConfig && llConfig.view_timeout) {
+      // Config FOUND. Activate for this dashboard.
+      this.activePanelUrl = newPanelUrl;
+      this.parseConfig(llConfig);
+    } else {
+      // Config NOT FOUND. 
+      // We update the activePanelUrl to prevent constantly retrying this logic every second
+      // But we mark isEnabled as false so we stay dormant.
+      // (Unless llConfig is completely null, meaning it hasn't loaded yet, then we wait and retry next loop)
+      if (this.lovelace?.lovelace) {
+         this.activePanelUrl = newPanelUrl;
+         this.isEnabled = false;
+         // Silent mode: We are on a dashboard that doesn't use ViewTimeout.
       }
     }
   }
 
-  // returns the destination view based on the current view
-  getTarget(name) {
-    const target = this.views[this.urlGetView()];
-    return (typeof target === 'string' || target === false) ? target : null;
-  }
-
-  // checks if the current user is authorized
-  processUsers(lovelace, config) {
-    try {
-      this.user = {
-        logged: this.ha.hass.user?.name.toLowerCase() || '',
-        list: []
-      };
-
-      // adds lowercase usernames to the array
-      const users = config.users || [];
-      users.forEach(user => this.user.list.push(user.toLowerCase()));
-    } catch (e) {
-      console.log("User data not found, continuing ignoring users.");
-      console.log(e);
-    }
-  }
-
-  // checks the different reset settings
-  processReset(lovelace, config) {
-    this.reset = {
-      mouse_move: (typeof config.reset?.mouse_move === 'boolean') ? config.reset.mouse_move : false,
-      mouse_click: (typeof config.reset?.mouse_click === 'boolean') ? config.reset.mouse_click : true,
-      in_lovelace: (typeof config.reset?.in_lovelace === 'boolean') ? config.reset.in_lovelace : false
-    };
-  }
-
-  // checks the destination of the views
-  processViews(lovelace, config) {
-    this.views = (typeof config.views === 'object') ? config.views : [];
-  }
-
-  // 
-  processConfig(lovelace, config) {
-    if (!config.timeout || (this.user.list.length && this.user.list.indexOf(this.user.logged) < 0)) {
-      return;
+  parseConfig(llConfig) {
+    const config = llConfig.view_timeout || {};
+    
+    // Global Toggle Check
+    if (config.timeout === false) {
+        this.isEnabled = false;
+        return;
     }
 
-    this.homeView = (config.default === undefined)  ? "home" : config.default;
-    this.defaultPanelUrl = this.ha.hass.panelUrl;
-
-    this.timeoutTime = config.duration || 30000;
-    setTimeout(() => this.urlCheckerStart(), 50);
-  }
-
-  // convert to array.
-  array(x) {
-    return Array.isArray(x) ? x : [x];
-  }  
-
-  // checks if the keys are present in the query
-  queryString(keywords) {
-    return this.array(keywords).some((x) => window.location.search.includes(x));
-  }
-
-  // resets the countdown when an event is raised
-  resetEvent() {
-    clearTimeout(this.viewTimeout);
-    this.viewTimeout = setTimeout(() => this.timeoutReturn(), this.timeoutTime);
-  }
-
-  // activates the countdown
-  setViewTimeout() {
-    if (this.reset.mouse_move) {
-      window.addEventListener("mousemove", () => this.resetEvent());
+    // User Whitelist Check
+    this.currentUser = this.ha?.hass?.user?.name?.toLowerCase();
+    if (config.users && Array.isArray(config.users)) {
+        const allowedUsers = config.users.map(u => u.toLowerCase());
+        if (!allowedUsers.includes(this.currentUser)) {
+            this.isEnabled = false;
+            return;
+        }
     }
 
-    if (this.reset.mouse_click) {
-      window.addEventListener("click", () => this.resetEvent());
-    }
+    // Load Settings
+    this.timeoutDuration = config.duration ?? 15000;
+    this.homeView = config.default ?? "home";
+    this.resetOnMove = config.reset?.mouse_move ?? false;
+    this.resetOnClick = config.reset?.mouse_click ?? true;
+    this.viewSpecificRedirects = config.views || {};
 
-    this.viewTimeout = setTimeout(() => this.timeoutReturn(), this.timeoutTime);
+    // Activate
+    this.isEnabled = true;
+    this.log(`Active on /${this.activePanelUrl} (Timeout: ${this.timeoutDuration}ms)`);
   }
 
-  // deactivates the countdown
-  cancelEverything() {
-    window.removeEventListener("mousemove", this.resetEvent);
-    window.removeEventListener("click", this.resetEvent);
-    clearTimeout(this.viewTimeout);
-    // null the timeout
-    this.viewTimeout = false;
-  }
-
-  // redirects once the countdown is complete
-  timeoutReturn() {
-    this.cancelEverything();
-
-    // remove focus from the former active tab to clear the style
-    try {
-      const activeTab = this.main.querySelector("ha-drawer > partial-panel-resolver > ha-panel-lovelace").shadowRoot.querySelector("hui-root").shadowRoot.activeElement;
-      if (activeTab != null) {
-        activeTab.blur();
-      }
-    } catch (e) {
-      console.log("Failed to blur active tab: " + e);
-    }
-
-    // switch tabs
-    const defaultView = this.homeView;
-    const target = this.getTarget(this.urlGetView()) || defaultView;
-    if (target) {
-      window.history.pushState("", "", "/" + this.defaultPanelUrl + "/" + target);
-      window.cardTools.fireEvent("location-changed", {}, document.querySelector("home-assistant"));
-    }
-  }
-
-  urlCheckerStart() {
-    this.urlInterval = setInterval(() => this.urlChecker(), 1000);
-  }
-
-  // returns the id of the current view
-  urlGetView() {
+  getCurrentView() {
     return window.location.pathname.split("/").pop();
   }
 
-  // indicates if you are on the Lovelace dashboard
-  isDefaultPanel() {
-    return window.location.pathname === "/" + this.defaultPanelUrl || window.location.pathname.startsWith("/" + this.defaultPanelUrl + "/");
+  checkTimeoutLogic() {
+    // Safety: If we drifted somehow, stop.
+    if (this.ha?.hass?.panelUrl !== this.activePanelUrl) return;
+
+    const currentView = this.getCurrentView();
+
+    // 1. Is this the default home view?
+    if (currentView === this.homeView) {
+      this.stopTimer();
+      return;
+    }
+
+    // 2. Is this view explicitly disabled?
+    const specificTarget = this.viewSpecificRedirects[currentView];
+    if (specificTarget === false) {
+      this.stopTimer();
+      return;
+    }
+
+    // 3. If no default home and no specific target, do nothing.
+    if (!this.homeView && !specificTarget) {
+        this.stopTimer();
+        return;
+    }
+
+    // Run timer if not already running
+    if (!this.timer) {
+      this.startTimer();
+    }
   }
 
-  // activates or deactivates the countdown depending on the different settings
-  urlChecker() {
-    // if the current view is not the default view, or if this view has destination "false" (false disables redirection to the default)
-    const isTargetedView = this.homeView === this.urlGetView() || this.getTarget(this.urlGetView()) === false;
-    // if the variable "in_lovelace" is "false" (therefore the redirection works in any Home Assistant) or that we are in the lovelace dashboard
-    const inLovelace = !this.reset.in_lovelace || this.isDefaultPanel();
+  startTimer() {
+    // Re-bind listeners (idempotent, safe to call multiple times due to boundReset)
+    if (this.resetOnMove) window.addEventListener("mousemove", this.boundReset);
+    if (this.resetOnClick) window.addEventListener("click", this.boundReset);
+    this.resetTimer();
+  }
 
-    if (!isTargetedView && inLovelace) {
-      if (!this.viewTimeout) {
-        this.setViewTimeout();
-      }
-    } else {
-      if (this.viewTimeout) {
-        this.cancelEverything();
-      }
+  stopTimer() {
+    window.removeEventListener("mousemove", this.boundReset);
+    window.removeEventListener("click", this.boundReset);
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
     }
+  }
+
+  resetTimer() {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.executeRedirect(), this.timeoutDuration);
+  }
+
+  executeRedirect() {
+    // Double check we are still on the right dashboard
+    if (this.ha?.hass?.panelUrl !== this.activePanelUrl) {
+        this.stopTimer();
+        return;
+    }
+
+    this.stopTimer();
+
+    try {
+        const activeEl = this.main?.activeElement || document.activeElement;
+        activeEl?.blur();
+    } catch (e) {}
+
+    const currentView = this.getCurrentView();
+    const target = this.viewSpecificRedirects[currentView] ?? this.homeView;
+
+    if (target) {
+        this.navigate(`/${this.activePanelUrl}/${target}`);
+    }
+  }
+
+  navigate(path) {
+    window.history.pushState(null, "", path);
+    window.dispatchEvent(new CustomEvent("location-changed", { 
+        bubbles: true, 
+        composed: true 
+    }));
   }
 }
 
-// initial run
 Promise.resolve(customElements.whenDefined("hui-view")).then(() => {
-  window.ViewTimeout = new ViewTimeout();
+  if (!window.ViewTimeout) {
+    window.ViewTimeout = new ViewTimeout();
+  }
 });
