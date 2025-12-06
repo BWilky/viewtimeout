@@ -15,7 +15,7 @@ timeout [Home Assistant](https://www.home-assistant.io/)
 
 ## Dependencies
 
-In order for redirection to work, it's necessary to first install [card-tools version 2](https://github.com/thomasloven/lovelace-card-tools).
+None required - card tools not required anymore
 
 ## Config Options
 
