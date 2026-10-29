@@ -131,7 +131,7 @@ views:
 Open the browser console (F12, or remote debugging for a tablet / the companion app) and look for
 `VIEWTIMEOUT` messages:
 
-* `v2.x started. Waiting for config...` - the script is loaded. If you don't see this, the resource is
+* `v1.3.0 started. Waiting for config...` - the script is loaded. If you don't see this, the resource is
   not set up correctly or your browser is using a cached version.
 * `Active on /<dashboard> (Timeout: ...ms, default view: ...)` - the config was found. Check that the
   dashboard, duration and default view are what you expect.

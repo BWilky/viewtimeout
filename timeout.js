@@ -1,4 +1,4 @@
-const VIEWTIMEOUT_VERSION = "2.1.0";
+const VIEWTIMEOUT_VERSION = "1.3.0";
 const DEFAULT_DURATION = 15000;
 
 // Events that count as user activity. Listeners are registered on window in
